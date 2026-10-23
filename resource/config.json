@@ -1,0 +1,5 @@
+{
+  "apiOrigin": "https://api.gente.ws",
+  "pollSeconds": 5,
+  "heartbeatMinutes": 5
+}

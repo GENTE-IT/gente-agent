@@ -1,0 +1,38 @@
+name: Release
+
+# Al empujar una etiqueta vX.Y.Z: comprueba, construye el recurso y publica el zip con su SHA-256
+# como release de GitHub. Studio enlaza a la última release desde la pantalla de Servidores.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Empaquetar
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          test "$(node -p "require('./package.json').version")" = "$VERSION" || { echo "package.json no está en $VERSION"; exit 1; }
+          cd build && zip -r "../gente_agent-v$VERSION.zip" gente_agent && cd ..
+          sha256sum "gente_agent-v$VERSION.zip" > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Publicar release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" "gente_agent-v$VERSION.zip" SHA256SUMS.txt \
+            --title "gente-agent $VERSION" \
+            --notes "Recurso \`gente_agent\` listo para copiar a \`resources/\`. Instalación y emparejamiento en el README. Comprueba la descarga con \`SHA256SUMS.txt\`."
